@@ -2,6 +2,7 @@
 
 import rospy
 from geometry_msgs.msg import PoseStamped
+from scipy.spatial import KDTree
 from styx_msgs.msg import Lane, Waypoint
 
 import math
@@ -31,6 +32,7 @@ class WaypointUpdater(object):
 	self.pose_msg = None
 	self.base_waypoints_msg = None
 	self.waypoints_cartesian = None
+	self.waypoints_tree = None
 
         rospy.init_node('waypoint_updater')
 
@@ -57,7 +59,8 @@ class WaypointUpdater(object):
 	# msg contains a list of waypoints (styx_msgs/Waypoint[])
         self.base_waypoints_msg = msg
 	if not self.waypoints_cartesian:
-		self.waypoints_cartesian =  [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in msg.waypoints] 
+		self.waypoints_cartesian =  [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in msg.waypoints]
+		self.waypoints_tree = KDTree(self.waypoints_cartesian) 
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
