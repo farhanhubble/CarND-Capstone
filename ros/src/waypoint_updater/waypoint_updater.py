@@ -28,8 +28,9 @@ class WaypointUpdater(object):
     def __init__(self):
 	# Initialize member variables before registering any callbacks
 	# that might potentially test the variables.
-	self.pose = None
-	self.base_waypoints = None
+	self.pose_msg = None
+	self.base_waypoints_msg = None
+	self.waypoints_cartesian = None
 
         rospy.init_node('waypoint_updater')
 
@@ -48,11 +49,15 @@ class WaypointUpdater(object):
     def pose_cb(self, msg):
 	# The type of msg is PoseStamped.
 	# Details can be seen with `rosmsg show /geometry_msgs/PoseStamped`
-	self.pose = msg
+	self.pose_msg = msg
 
-    def waypoints_cb(self, waypoints):
-        self.base_waypoints = waypoints
-        pass
+    def waypoints_cb(self, msg):
+	# The type of msg is Lane.
+	# Details can be seen with `rosmsg show /styx_msgs/Lane`
+	# msg contains a list of waypoints (styx_msgs/Waypoint[])
+        self.base_waypoints_msg = msg
+	if not self.waypoints_cartesian:
+		self.waypoints_cartesian =  [[waypoint.pose.position.x, waypoint.pose.position.y] for waypoint in msg.waypoints] 
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
