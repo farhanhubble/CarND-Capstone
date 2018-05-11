@@ -57,7 +57,7 @@ class WaypointUpdater(object):
 	# msg contains a list of waypoints (styx_msgs/Waypoint[])
         self.base_waypoints_msg = msg
 	if not self.waypoints_cartesian:
-		self.waypoints_cartesian =  [[waypoint.pose.position.x, waypoint.pose.position.y] for waypoint in msg.waypoints] 
+		self.waypoints_cartesian =  [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in msg.waypoints] 
 
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
