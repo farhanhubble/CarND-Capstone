@@ -45,8 +45,16 @@ class WaypointUpdater(object):
 
         self.final_waypoints_pub = rospy.Publisher('final_waypoints', Lane, queue_size=1)
 
-        # TODO: Add other member variables you need below
-        rospy.spin()
+        self._loop()
+
+
+    def _loop(self):
+	rate = rospy.Rate(50)
+	while not rospy.is_shutdown():
+		if self.pose_msg and self.base_waypoints_msg:
+			pass
+		rate.sleep()
+
 
     def pose_cb(self, msg):
 	# The type of msg is PoseStamped.
