@@ -26,6 +26,11 @@ LOOKAHEAD_WPS = 200 # Number of waypoints we will publish. You can change this n
 
 class WaypointUpdater(object):
     def __init__(self):
+	# Initialize member variables before registering any callbacks
+	# that might potentially test the variables.
+	self.pose = None
+	self.base_waypoints = None
+
         rospy.init_node('waypoint_updater')
 
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
@@ -41,7 +46,9 @@ class WaypointUpdater(object):
         rospy.spin()
 
     def pose_cb(self, msg):
-	rospy.loginfo('Received new pose message')
+	# The type of msg is PoseStamped.
+	# Details can be seen with `rosmsg show /geometry_msgs/PoseStamped`
+	self.pose = msg
 
     def waypoints_cb(self, waypoints):
         self.base_waypoints = waypoints
