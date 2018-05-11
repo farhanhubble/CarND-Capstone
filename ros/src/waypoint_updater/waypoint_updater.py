@@ -47,6 +47,29 @@ class WaypointUpdater(object):
 
         self._loop()
 
+    
+
+    def _get_next_waypoint_index(self):
+	car_x = self.pose_msg.pose.position.x
+	car_y = self.pose_msg.pose.position.y
+
+	_ , closest_waypoint_index = self.waypoints_tree.query([car_x, car_y], 1)
+	preceding_waypoint_index =  (closest_waypoint_index > 0) if  (closest_waypoint_index - 1) else  (len(self.waypoints_cartesian) - 1)
+
+	closest_waypoint = self.waypoints_cartesian[closest_waypoint_index]
+	preceding_waypoint = self.waypoints_cartesian[preceding_waypoint_index]
+
+	car_vector = np.array([car_x, car_y])
+	closest_wp_vector = np.array(closest_waypoint)
+	preceding_wp_vector = np.array(preceding_waypoint)
+
+	direction_test = np.dot(closest_wp_vector - preceding_wp_vector, car_vector - closest_wp_vector)
+
+	if direction_test > 0:
+		closest_waypoint_index  = (closest_waypoint_index + 1) % len(self.waypoints_cartesian)
+	
+	return closest_waypoint_index
+	
 
     def _loop(self):
 	rate = rospy.Rate(50)
