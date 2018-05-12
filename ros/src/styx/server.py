@@ -4,6 +4,7 @@ import eventlet
 eventlet.monkey_patch(socket=True, select=True, time=True)
 
 import eventlet.wsgi
+import rospy
 import socketio
 import time
 from flask import Flask, render_template
@@ -30,6 +31,8 @@ bridge = Bridge(conf, send)
 
 @sio.on('telemetry')
 def telemetry(sid, data):
+    print('Received telemetry data')
+    rospy.loginfo('Received telemetry data')
     global dbw_enable
     if data["dbw_enable"] != dbw_enable:
         dbw_enable = data["dbw_enable"]
@@ -41,22 +44,32 @@ def telemetry(sid, data):
 
 @sio.on('control')
 def control(sid, data):
+    print('Received control data')
+    rospy.loginfo('Received control data')
     bridge.publish_controls(data)
 
 @sio.on('obstacle')
 def obstacle(sid, data):
+    print('Received obstacle data')
+    rospy.loginfo('Received obstacle data')
     bridge.publish_obstacles(data)
 
 @sio.on('lidar')
-def obstacle(sid, data):
+def obstacle(sid, data): 
+    print('Received lidar data')
+    rospy.loginfo('Received lidar data')
     bridge.publish_lidar(data)
 
 @sio.on('trafficlights')
 def trafficlights(sid, data):
+    print('Received trafficlights data')
+    rospy.loginfo('Received trafficlights data')
     bridge.publish_traffic(data)
 
 @sio.on('image')
 def image(sid, data):
+    print('Received image data')
+    rospy.loginfo('Received image data')
     bridge.publish_camera(data)
 
 if __name__ == '__main__':
