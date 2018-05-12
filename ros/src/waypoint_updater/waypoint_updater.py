@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import numpy as np
 import rospy
 from geometry_msgs.msg import PoseStamped
 from scipy.spatial import KDTree
@@ -53,6 +53,7 @@ class WaypointUpdater(object):
 	car_x = self.pose_msg.pose.position.x
 	car_y = self.pose_msg.pose.position.y
 
+	rospy.loginfo('Attemting to use KD Tree')
 	_ , closest_waypoint_index = self.waypoints_tree.query([car_x, car_y], 1)
 	preceding_waypoint_index =  (closest_waypoint_index > 0) if  (closest_waypoint_index - 1) else  (len(self.waypoints_cartesian) - 1)
 
@@ -69,13 +70,22 @@ class WaypointUpdater(object):
 		closest_waypoint_index  = (closest_waypoint_index + 1) % len(self.waypoints_cartesian)
 	
 	return closest_waypoint_index
+
+
+    def _publish(self, next_wp_index):
+	lane = Lane()
+	lane.header = self.base_waypoints_msg.header
+	lane.waypoints = self.base_waypoints_msg.waypoints[next_wp_index : next_wp_index + LOOKAHEAD_WPS]
+	self.final_waypoints_pub.publish(lane)
 	
 
     def _loop(self):
 	rate = rospy.Rate(50)
 	while not rospy.is_shutdown():
 		if self.pose_msg and self.base_waypoints_msg:
-			pass
+			rospy.loginfo('Indide if self.pose_msg and self.base_waypoints_msg')
+			next_wp_index = self._get_next_waypoint_index()
+			self._publish(next_wp_index)
 		rate.sleep()
 
 
@@ -88,11 +98,15 @@ class WaypointUpdater(object):
 	# The type of msg is Lane.
 	# Details can be seen with `rosmsg show /styx_msgs/Lane`
 	# msg contains a list of waypoints (styx_msgs/Waypoint[])
+	rospy.loginfo('Inside waypoints_cb')
         self.base_waypoints_msg = msg
 	if not self.waypoints_cartesian:
+		rospy.loginfo('Setting up KD tree')
 		self.waypoints_cartesian =  [[waypoint.pose.pose.position.x, waypoint.pose.pose.position.y] for waypoint in msg.waypoints]
 		self.waypoints_tree = KDTree(self.waypoints_cartesian) 
+		rospy.loginfo('Done setting KD Tree')
 
+    
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         pass
