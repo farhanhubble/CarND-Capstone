@@ -35,18 +35,23 @@ class DBWNode(object):
     def __init__(self):
         rospy.init_node('dbw_node')
 
-        vehicle_mass = rospy.get_param('~vehicle_mass', 1736.35)
-        fuel_capacity = rospy.get_param('~fuel_capacity', 13.5)
-        brake_deadband = rospy.get_param('~brake_deadband', .1)
-        decel_limit = rospy.get_param('~decel_limit', -5)
-        accel_limit = rospy.get_param('~accel_limit', 1.)
-        wheel_radius = rospy.get_param('~wheel_radius', 0.2413)
-        wheel_base = rospy.get_param('~wheel_base', 2.8498)
-        steer_ratio = rospy.get_param('~steer_ratio', 14.8)
-        max_lat_accel = rospy.get_param('~max_lat_accel', 3.)
-        max_steer_angle = rospy.get_param('~max_steer_angle', 8.)
+	params ={'vehicle_mass' : rospy.get_param('~vehicle_mass', 1736.35),
+        	'fuel_capacity' : rospy.get_param('~fuel_capacity', 13.5),
+        	'brake_deadband' : rospy.get_param('~brake_deadband', .1),
+        	'decel_limit' : rospy.get_param('~decel_limit', -5),
+        	'accel_limit' : rospy.get_param('~accel_limit', 1.),
+       		'wheel_radius' : rospy.get_param('~wheel_radius', 0.2413),
+        	'wheel_base' : rospy.get_param('~wheel_base', 2.8498),
+        	'steer_ratio' : rospy.get_param('~steer_ratio', 14.8),
+        	'max_lat_accel' : rospy.get_param('~max_lat_accel', 3.),
+        	'max_steer_angle' : rospy.get_param('~max_steer_angle', 8.) }
 
-	self.dbw_enabled = True
+	self.dbw_enabled = None
+	self.target_linear_vel = None
+	self.target_angular_vel = None
+	self.cur_linear_velocity = None
+	self.cur_angular_velocity = None
+	self.throttle = self.brake = self.steering = 0
 
 
 	# Publishers
@@ -59,13 +64,20 @@ class DBWNode(object):
                                          BrakeCmd, queue_size=1)
 
         # Controller
-        self.controller = Controller()
+        self.controller = Controller(params)
 
         # Subscriber
 	rospy.Subscriber('/vehicle/dbw_enabled',Bool,self.dbw_status_cb)
+	rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cmd_cb)
+	rospy.Subscriber('/current_velocity', TwistStamped, self.cur_velocity_cb)
+	
 
         self.loop()
 
+
+    def cur_velocity_cb(self, msg):
+	self.cur_linear_velocity = msg.twist.linear.x 
+	self.cur_angular_velocity = msg.twist.angular.z
 
     def dbw_status_cb(self,msg):
 	self.dbw_enabled = msg.data
@@ -73,17 +85,19 @@ class DBWNode(object):
     def loop(self):
         rate = rospy.Rate(50) # 50Hz
         while not rospy.is_shutdown():
-            # TODO: Get predicted throttle, brake, and steering using `twist_controller`
-            # You should only publish the control commands if dbw is enabled
-            # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
-            #                                                     <proposed angular velocity>,
-            #                                                     <current linear velocity>,
-            #                                                     <dbw status>,
-            #                                                     <any other argument you need>)
+
+	    if all([self.target_linear_vel, self.target_angular_vel, self.cur_linear_velocity]):
+
+		self.throttle, self.brake, self.steering =\
+			self.controller.control(self.target_linear_vel, 
+						self.target_angular_vel, 
+						self.cur_linear_velocity,
+						self.dbw_enabled)
             if self.dbw_enabled:
-	       throttle, brake, steering = self.controller.control()
-               self.publish(throttle, brake, steering)
-            rate.sleep()
+		self.publish(self.throttle, self.brake, self.steering)
+            
+	    rate.sleep()
+
 
     def publish(self, throttle, brake, steer):
         tcmd = ThrottleCmd()
@@ -102,6 +116,12 @@ class DBWNode(object):
         bcmd.pedal_cmd_type = BrakeCmd.CMD_TORQUE
         bcmd.pedal_cmd = brake
         self.brake_pub.publish(bcmd)
+
+
+    def twist_cmd_cb(self, msg):
+	# msg has type geometry_msgs/TwistStamped
+	self.target_linear_vel = msg.twist.linear.x
+	self.target_angular_vel = msg.twist.angular.z
 
 
 if __name__ == '__main__':
